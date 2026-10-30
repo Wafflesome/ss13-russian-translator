@@ -4,6 +4,8 @@
 
 Made for **SS1984 / SS220 (Paradise)**. It works on any BYOND 516 server, but the game dictionaries are built from that codebase.
 
+**[⬇ Download the latest release](https://github.com/Wafflesome/ss13-russian-translator/releases/latest)**, then see [Installing](#installing).
+
 > [!WARNING]
 > ## This is vibecoded slop
 > Pretty much every line of this was written by an AI over a lot of chat sessions, for one person who wanted to play on Russian servers.
@@ -76,11 +78,13 @@ Not translated: text baked into sprites and images, voice-over audio, the right-
 
 ## Installing
 
-1. Download this repository (**Code → Download ZIP**) and unpack it anywhere, for example on your desktop.
-2. Double-click **`SS13 Russian Translator.cmd`**.
+1. Go to **[Releases](https://github.com/Wafflesome/ss13-russian-translator/releases/latest)** (also on the right side of this page) and download **`SS13-Russian-Translator-vX.Y.Z.zip`** under *Assets*.
+   (Or take the newest code with **Code → Download ZIP**. It's the same files plus the screenshots.)
+2. Unpack the zip anywhere, for example on your desktop. Right-click → **Extract All…**, don't run it from inside the zip.
+3. Open the `SS13 Russian Translator` folder and double-click **`SS13 Russian Translator.cmd`**.
    - The first time, it downloads Bun into `runtime\`.
    - It also puts a shortcut with the translator's icon in the folder and on your desktop.
-3. That's it. To uninstall, close everything and delete the folder (and the desktop shortcut).
+4. That's it. To uninstall, close everything and delete the folder (and the desktop shortcut).
 
 ---
 

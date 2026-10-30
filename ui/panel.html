@@ -1,0 +1,1203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="ss13tr-panel" content="1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SS13 Russian Translator</title>
+<link rel="icon" type="image/png" href="/icon.png">
+<style>
+  :root {
+    --hull: #1b2230;
+    --plate: #232c3d;
+    --plate-2: #2a3448;
+    --seam: #36435d;
+    --text: #e4e9f2;
+    --dim: #93a0b6;
+    --amber: #f2b544;
+    --amber-deep: #8a6420;
+    --ok: #6cc79a;
+    --alarm: #e5666d;
+    --display: "Bahnschrift", "DIN Alternate", "Segoe UI", sans-serif;
+    --body: "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--hull); color: var(--text); font: 14px/1.45 var(--body); }
+  body { min-width: 360px; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  header { padding: 18px 20px 14px; border-bottom: 1px solid var(--seam); background: linear-gradient(var(--plate), var(--hull)); }
+  .title { font-family: var(--display); font-weight: 600; font-size: 22px; letter-spacing: .02em; margin: 0; }
+  .sub { color: var(--dim); margin: 2px 0 0; font-size: 13px; }
+  .sub b { color: var(--text); font-weight: 600; }
+  .lamp { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--dim); vertical-align: 1px; }
+  .lamp.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .lamp.wait { background: var(--amber); }
+  .lamp.bad { background: var(--alarm); box-shadow: 0 0 8px var(--alarm); }
+
+  /* The breaker: the one bold element on the page */
+  .breaker { display: flex; align-items: center; gap: 16px; margin: 16px 20px 6px; padding: 14px 16px;
+    border: 1px solid var(--seam); border-radius: 6px; background: var(--plate); }
+  .breaker-text { flex: 1; }
+  .breaker-text strong { font-family: var(--display); font-size: 18px; font-weight: 600; display: block; }
+  .breaker-text span { color: var(--dim); font-size: 13px; }
+  .lever { position: relative; width: 92px; height: 44px; border-radius: 6px; border: 2px solid #11161f; cursor: pointer;
+    background: repeating-linear-gradient(135deg, #2b2f36 0 10px, #23272d 10px 20px); padding: 0; }
+  .lever::after { content: ""; position: absolute; top: 3px; left: 3px; width: 42px; height: 34px; border-radius: 4px;
+    background: linear-gradient(#5b6475, #3c4352); box-shadow: inset 0 1px 0 #7d879a; transition: left .18s ease, background .18s; }
+  .lever[aria-checked="true"] { background: repeating-linear-gradient(135deg, var(--amber) 0 10px, #1a1a1a 10px 20px); }
+  .lever[aria-checked="true"]::after { left: 43px; background: linear-gradient(#f7d27d, var(--amber)); box-shadow: inset 0 1px 0 #fff3cf; }
+  .lever-label { font-family: var(--display); font-size: 13px; width: 30px; text-align: center; color: var(--dim); }
+  .lever-label.on { color: var(--amber); }
+
+  nav { display: flex; gap: 4px; padding: 10px 20px 0; border-bottom: 1px solid var(--seam); }
+  nav button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 12px 9px; cursor: pointer;
+    font-family: var(--display); font-size: 15px; color: var(--dim); }
+  nav button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--amber); }
+  main { padding: 6px 20px 30px; }
+  section { margin-top: 18px; }
+  h2 { font-family: var(--display); font-weight: 600; font-size: 16px; margin: 0 0 8px; }
+  .hint { color: var(--dim); font-size: 13px; margin: -4px 0 10px; }
+  .panel { background: var(--plate); border: 1px solid var(--seam); border-radius: 6px; padding: 12px 14px; }
+
+  .readout { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--seam); border: 1px solid var(--seam); border-radius: 6px; overflow: hidden; }
+  .readout div { background: var(--plate); padding: 10px 12px; }
+  .readout dt { color: var(--dim); font-size: 12px; margin: 0; }
+  .readout dd { margin: 2px 0 0; font-family: var(--display); font-size: 18px; }
+
+  .alert { border-left: 4px solid var(--alarm); background: #3a2630; padding: 10px 12px; border-radius: 4px; margin-top: 16px; }
+  .alert.info { border-left-color: var(--amber); background: #352f22; }
+  .alert[hidden] { display: none; }
+
+
+  .btn { background: var(--plate-2); border: 1px solid var(--seam); border-radius: 4px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { border-color: var(--dim); }
+  .btn.primary { background: var(--amber); color: #1d1606; border-color: var(--amber); font-weight: 600; }
+  .btn.primary:hover { background: #f7c766; }
+  .btn.danger { color: var(--alarm); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row + .row { margin-top: 8px; }
+  input[type=text], input[type=password], select, textarea {
+    background: var(--hull); border: 1px solid var(--seam); border-radius: 4px; padding: 6px 8px; width: 100%; }
+  textarea { resize: vertical; min-height: 64px; }
+  input[type=range] { accent-color: var(--amber); width: 100%; }
+  .grow { flex: 1; min-width: 140px; }
+
+  .setting { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--seam); }
+  .setting:last-child { border-bottom: 0; }
+  .setting .what { flex: 1; }
+  .setting .what label { font-weight: 600; display: block; }
+  .setting .what p { margin: 2px 0 0; color: var(--dim); font-size: 13px; }
+  .setting .ctl { flex: 0 0 auto; min-width: 46px; display: flex; justify-content: flex-end; }
+  .setting .ctl.wide { flex: 0 0 200px; }
+  .switch { width: 42px; height: 24px; border-radius: 12px; background: #11161f; border: 1px solid var(--seam); position: relative; cursor: pointer; padding: 0; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--dim); transition: left .15s; }
+  .switch[aria-checked="true"] { background: var(--amber-deep); border-color: var(--amber); }
+  .switch[aria-checked="true"]::after { left: 20px; background: var(--amber); }
+  .two { display: flex; align-items: center; gap: 8px; }
+  .two .side { color: var(--dim); font-size: 13px; cursor: pointer; user-select: none; }
+  .two .side.on { color: var(--amber); font-weight: 600; }
+  .gswitch { width: 42px; height: 24px; border-radius: 12px; background: var(--amber-deep); border: 1px solid var(--amber); position: relative; cursor: pointer; padding: 0; }
+  .gswitch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--amber); transition: left .15s; }
+  .gswitch[aria-checked="true"]::after { left: 20px; }
+
+  .saved { color: var(--ok); font-size: 13px; min-height: 18px; }
+  .result { margin-top: 8px; padding: 8px 10px; background: var(--hull); border-radius: 4px; border: 1px dashed var(--seam); min-height: 36px; white-space: pre-wrap; }
+  .sent li { padding: 6px 0; border-bottom: 1px solid var(--seam); list-style: none; }
+  .sent { margin: 0; padding: 0; }
+  .sent .from { color: var(--dim); font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 5px 6px; border-bottom: 1px solid var(--seam); vertical-align: top; }
+  td.n { color: var(--amber); width: 34px; text-align: right; font-family: var(--display); }
+  td.w { color: var(--dim); width: 120px; word-break: break-all; }
+  .log { background: #121722; border: 1px solid var(--seam); border-radius: 6px; padding: 10px; height: 260px; overflow: auto;
+    font: 12px/1.5 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; color: #c3cad8; }
+  .empty { color: var(--dim); font-size: 13px; }
+  /* Dictionary page */
+  .seg { display: inline-flex; border: 1px solid var(--seam); border-radius: 5px; overflow: hidden; }
+  .seg button { background: var(--plate); border: 0; border-right: 1px solid var(--seam); padding: 6px 12px; cursor: pointer; color: var(--dim); }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--amber-deep); color: var(--text); }
+  .dsearch { position: relative; }
+  .dsearch input { font-size: 16px; padding: 9px 34px 9px 10px; }
+  .dsearch .x { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: var(--dim); cursor: pointer; font-size: 18px; padding: 2px 6px; }
+  .dopts { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
+  .dopts label { font-size: 12px; color: var(--dim); display: block; }
+  @media (max-width: 700px) { .dopts { grid-template-columns: repeat(2, 1fr); } }
+  .dcount { color: var(--dim); font-size: 13px; margin: 10px 0 6px; }
+  .dcount b { color: var(--text); font-weight: 600; }
+  .letters { display: flex; flex-wrap: wrap; gap: 2px; margin: 4px 0 8px; }
+  .letters button { background: none; border: 1px solid transparent; border-radius: 3px; color: var(--dim); cursor: pointer; min-width: 24px; padding: 1px 4px; font-family: var(--display); }
+  .letters button:hover { border-color: var(--seam); color: var(--text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chip { background: var(--plate-2); border: 1px solid var(--seam); border-radius: 12px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
+  .chip:hover { border-color: var(--amber); }
+  .chip small { color: var(--dim); margin-left: 4px; }
+  .dlist { border: 1px solid var(--seam); border-radius: 6px; overflow: hidden; }
+  .drow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; padding: 7px 10px; border-bottom: 1px solid var(--seam); background: var(--plate); cursor: pointer; align-items: start; }
+  .drow.words { grid-template-columns: minmax(120px, 1fr) 60px 1.4fr auto; }
+  .drow:hover { background: var(--plate-2); }
+  .drow.sel { outline: 2px solid var(--amber); outline-offset: -2px; }
+  .drow .src, .drow .tr { word-break: break-word; white-space: pre-wrap; }
+  .drow .tr { color: #cfe3d8; }
+  .drow .tr.none { color: var(--dim); font-style: italic; }
+  .drow .n { color: var(--dim); font-size: 12px; text-align: right; }
+  .drow mark { background: #6b5317; color: inherit; border-radius: 2px; }
+  .badge { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 8px; margin-left: 4px; border: 1px solid var(--seam); color: var(--dim); white-space: nowrap; }
+  .badge.fix { color: var(--ok); border-color: var(--ok); }
+  .badge.sus { color: var(--amber); border-color: var(--amber-deep); }
+  .badge.game { color: #8fb8ff; border-color: #3d5a8a; }
+  .dhead { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; padding: 6px 10px; background: var(--hull); color: var(--dim); font-size: 12px; border-bottom: 1px solid var(--seam); }
+  .dhead.words { grid-template-columns: minmax(120px, 1fr) 60px 1.4fr auto; }
+  .deditor { background: #1e2635; border-bottom: 1px solid var(--seam); border-left: 3px solid var(--amber); padding: 12px 14px; cursor: default; }
+  .deditor .lbl { color: var(--dim); font-size: 12px; margin: 8px 0 3px; }
+  .deditor .lbl:first-child { margin-top: 0; }
+  .deditor .box { background: var(--hull); border: 1px solid var(--seam); border-radius: 4px; padding: 6px 8px; white-space: pre-wrap; word-break: break-word; }
+  .deditor .box.machine { color: var(--dim); }
+  .deditor textarea { min-height: 54px; }
+  .deditor .msg { font-size: 13px; min-height: 18px; margin-top: 6px; }
+  .deditor .msg.bad { color: var(--alarm); }
+  .deditor .msg.good { color: var(--ok); }
+  .deditor .gw { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px; align-items: center; margin-top: 6px; }
+  .deditor .gw span { color: var(--dim); font-size: 13px; }
+  .kbd { font: 11px Consolas, monospace; border: 1px solid var(--seam); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--dim); }
+  .more { text-align: center; padding: 10px; color: var(--dim); background: var(--plate); }
+  .changes li { list-style: none; padding: 6px 0; border-bottom: 1px solid var(--seam); display: flex; gap: 8px; align-items: center; }
+  .changes { margin: 0; padding: 0; }
+  .changes .what { flex: 1; font-size: 13px; word-break: break-word; }
+  .linkbtn { background: none; border: 0; color: var(--amber); cursor: pointer; padding: 0 4px; font-size: 13px; text-decoration: underline; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 class="title">SS13 Russian Translator</h1>
+  <p class="sub" id="status-line"><span class="lamp" id="lamp"></span><span id="status-text">Starting…</span></p>
+</header>
+
+<div class="breaker">
+  <span class="lever-label" id="lab-off">RU</span>
+  <button class="lever" id="lever" role="switch" aria-checked="true" aria-label="Translation"></button>
+  <span class="lever-label on" id="lab-on">EN</span>
+  <div class="breaker-text">
+    <strong id="breaker-title">Translation is on</strong>
+    <span id="breaker-sub">Russian text in the game is shown in English.</span>
+  </div>
+</div>
+
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-tab="play">Play</button>
+  <button role="tab" aria-selected="false" data-tab="settings">Settings</button>
+  <button role="tab" aria-selected="false" data-tab="diag">Diagnostics</button>
+  <button role="tab" aria-selected="false" data-tab="dict">Dictionary</button>
+</nav>
+
+<main>
+  <!-- PLAY -->
+  <div data-page="play">
+    <div class="alert" id="alert" hidden></div>
+    <section>
+      <dl class="readout">
+        <div><dt>Game</dt><dd id="r-game">—</dd></div>
+        <div><dt>Game windows translated</dt><dd id="r-windows">0</dd></div>
+        <div><dt>Phrases translated</dt><dd id="r-count">0</dd></div>
+        <div><dt>Phrases remembered</dt><dd id="r-cache">0</dd></div>
+      </dl>
+      <div class="panel" style="margin-top:10px">
+        <div class="row"><span class="lamp" id="ov-lamp"></span><span id="ov-text" class="grow">Speech bubbles: starting…</span></div>
+      </div>
+      <p class="hint" id="warm-line" hidden style="margin-top:8px"></p>
+    </section>
+
+    <section>
+      <h2>What you type</h2>
+      <div class="panel">
+        <div class="setting"><div class="what"><label>Translate what I type into Russian</label><p>Write in English in the say box (T, Y, O, M… or whatever keys you have set), the input bar at the bottom and other one-line boxes. It is sent in Russian.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="typeInRussian" aria-label="Translate what I type into Russian"></button></div></div>
+        <div class="setting"><div class="what"><label>Show me the Russian before it is sent</label><p>Enter turns your English into Russian (green outline). Press Enter again to send it.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="sayConfirm" aria-label="Check before sending"></button></div></div>
+        <div class="setting"><div class="what"><label>Your character is</label><p>When you write about yourself, the Russian uses your gender: “I'm tired” is sent as <i id="g-example">я устал</i>. Words about other people are left alone.</p></div>
+          <div class="ctl"><span class="two"><span class="side" data-g="m">Male</span><button class="gswitch" id="myGender" role="switch" aria-label="Female character"></button><span class="side" data-g="f">Female</span></span></div></div>
+      </div>
+      <p class="hint" style="margin-top:8px">How you know it worked: the say box shows a green <b>EN→RU</b> mark while this is on, and when your message comes back in chat a green line under it shows the Russian that was sent. It is also listed under “What you sent” below.</p>
+    </section>
+
+    <section>
+      <h2>Translate something</h2>
+      <p class="hint">For checking a phrase, or writing something to paste into the game.</p>
+      <div class="panel">
+        <textarea id="tr-text" placeholder="Type English or Russian"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" data-dir="en-ru">English to Russian</button>
+          <button class="btn" data-dir="ru-en">Russian to English</button>
+          <button class="btn" id="copy-btn" hidden>Copy result</button>
+        </div>
+        <div class="result" id="tr-result" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>What you sent</h2>
+      <ul class="sent" id="sent"><li class="empty">Nothing yet. Press T in the game, type English and press Enter.</li></ul>
+    </section>
+  </div>
+
+  <!-- SETTINGS -->
+  <div data-page="settings" hidden>
+    <p class="saved" id="saved"></p>
+    <section>
+      <h2>Translation services</h2>
+      <div class="panel">
+        <div class="setting"><div class="what"><label for="engine">Reading (Russian to English)</label><p>Google is free. DeepL needs your own API key.</p></div>
+          <div class="ctl wide"><select id="engine" data-key="engine"><option value="google">Google (free)</option><option value="deepl">DeepL (key)</option></select></div></div>
+        <div class="setting"><div class="what"><label for="outgoingEngine">Writing (English to Russian)</label><p>The server asks for literate Russian. Google "Best" or DeepL both work.</p></div>
+          <div class="ctl wide"><select id="outgoingEngine" data-key="outgoingEngine"><option value="google">Google (free)</option><option value="deepl">DeepL (key)</option></select></div></div>
+        <div class="setting"><div class="what"><label for="googleQuality">Google quality</label><p>Best uses the translator of the Google Translate website (better sentences); if it doesn't answer quickly the classic one is used, so it is never slower.</p></div>
+          <div class="ctl wide"><select id="googleQuality" data-key="googleQuality"><option value="best">Best (website)</option><option value="classic">Classic</option></select></div></div>
+        <div class="setting"><div class="what"><label for="deeplKey">DeepL API key</label><p>Only needed if you pick DeepL.</p></div>
+          <div class="ctl wide"><input type="password" id="deeplKey" data-key="deeplKey" autocomplete="off"></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Game dictionary</h2>
+      <p class="hint">Game words (blob, changeling, item and job names…) are translated the way the server names them: from the SS220 wiki, the server's own item names, and <code>data/lexicon_game.json</code> (yours to edit).</p>
+      <div class="panel">
+        <div class="setting"><div class="what"><label>Use the SS220 wiki</label><p id="wiki-text">—</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="wikiDictionary" aria-label="Wiki dictionary"></button></div></div>
+        <div class="row" style="margin-top:8px"><button class="btn" id="wiki-update">Update from the wiki now</button></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Talking</h2>
+      <div class="panel">
+        <div class="setting"><div class="what"><label>Translate what I type into Russian</label><p>The same switch as on the Play page. When it is off, Ctrl+Enter in any box still translates that box once.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="typeInRussian" aria-label="Translate what I type into Russian"></button></div></div>
+        <div class="setting"><div class="what"><label for="nativeInputDelayMs">Input bar at the bottom: pause before translating</label><p id="delay-text"></p></div>
+          <div class="ctl wide"><input type="range" id="nativeInputDelayMs" data-key="nativeInputDelayMs" min="500" max="4000" step="100"></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Screen</h2>
+      <div class="panel">
+        <div class="setting"><div class="what"><label>English speech bubbles</label><p>Covers each bubble above a speaker with the English from chat, in their colour. Clicks pass through.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="mapOverlay" aria-label="Map overlay"></button></div></div>
+        <div class="setting"><div class="what"><label for="mapOverlayFont">Speech bubble text</label><p>Game font matches the bubbles exactly; clean is a smooth Windows font.</p></div>
+          <div class="ctl wide"><select id="mapOverlayFont" data-key="mapOverlayFont"><option value="game">Game font (same as bubbles)</option><option value="clean">Clean (Segoe UI)</option></select></div></div>
+        <div class="setting"><div class="what"><label for="mapOverlayBoxFit">Box size</label><p>Tight: the box is exactly as big as the Russian letters and the English letters together, so no Russian shows and nothing more is covered. English only: smallest, but where the Russian line is longer, some of it shows. Whole bubble: a bigger box with a margin.</p></div>
+          <div class="ctl wide"><select id="mapOverlayBoxFit" data-key="mapOverlayBoxFit"><option value="tight">Tight (hide all Russian letters)</option><option value="english">English letters only</option><option value="cover">Whole bubble, with margin</option></select></div></div>
+        <div class="setting"><div class="what"><label>Show the boxes in screenshots</label><p>Off (best): the English boxes are left out of screen captures, so the overlay can look at the map straight from the screen and follow bubbles faster - but screenshots, recordings and streams show the Russian bubbles. Turn on to capture the boxes too (following gets a little slower).</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="mapOverlayShowInScreenshots" aria-label="Show the boxes in screenshots"></button></div></div>
+        <div class="setting"><div class="what"><label for="mapOverlayBoxColor">Box colour</label><p>The box drawn over the Russian bubble.</p></div>
+          <div class="ctl wide"><input type="color" id="mapOverlayBoxColor" data-key="mapOverlayBoxColor"></div></div>
+        <div class="setting"><div class="what"><label for="mapOverlayBoxOpacity">Box opacity</label><p>Below about 90% the Russian starts to show through.</p></div>
+          <div class="ctl wide"><input type="range" id="mapOverlayBoxOpacity" data-key="mapOverlayBoxOpacity" min="0" max="100" step="5"></div></div>
+        <div class="setting"><div class="what"><label>Translate the buttons around the map</label><p>Меню, Полный экран, Сказать and the other native buttons.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="translateSkin" aria-label="Buttons"></button></div></div>
+        <div class="setting"><div class="what"><label for="maxHideMs">Longest wait for a translation</label><p id="hide-text"></p></div>
+          <div class="ctl wide"><input type="range" id="maxHideMs" data-key="maxHideMs" min="1000" max="15000" step="500"></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Starting the game</h2>
+      <div class="panel">
+        <div class="setting"><div class="what"><label for="byondDir">BYOND folder</label></div>
+          <div class="ctl wide"><input type="text" id="byondDir" data-key="byondDir"></div></div>
+        <div class="setting"><div class="what"><label>Start BYOND when the translator starts</label></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="launchGame" aria-label="Start BYOND"></button></div></div>
+        <div class="setting"><div class="what"><label>Open this panel when the translator starts</label><p>In the game, Ctrl+Alt+S opens it any time.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="openPanelOnStart" aria-label="Open panel"></button></div></div>
+        <div class="setting"><div class="what"><label>Pre-translate the game's interface</label><p>Done once in the background so menus appear in English instantly.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="warmup" aria-label="Pre-translate"></button></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- DIAGNOSTICS -->
+  <div data-page="diag" hidden>
+    <section>
+      <h2>Russian still on screen</h2>
+      <p class="hint">Text that stayed Russian in an open game window. Names and slang the service can't translate also land here.</p>
+      <div class="panel">
+        <table><tbody id="left"><tr><td class="empty">None seen.</td></tr></tbody></table>
+        <div class="row" style="margin-top:10px"><button class="btn" id="clear-left">Clear list</button><button class="btn" id="rescan">Translate open windows again</button></div>
+      </div>
+    </section>
+    <section>
+      <h2>Map overlay</h2>
+      <p class="hint">Speech bubbles recently matched to their chat line, newest first.</p>
+      <div class="panel">
+        <p class="hint" style="margin:0 0 6px" id="ov-diag"></p>
+        <table><tbody id="ov-seen"><tr><td class="empty">No bubbles matched yet.</td></tr></tbody></table>
+        <div class="row" style="margin-top:10px"><button class="btn" id="ov-restart">Restart map overlay</button></div>
+      </div>
+    </section>
+    <section>
+      <h2>Activity</h2>
+      <div class="log" id="log" tabindex="0" aria-label="Activity log"></div>
+    </section>
+    <section>
+      <h2>Detailed logs</h2>
+      <div class="panel">
+        <div class="setting"><div class="what"><label>Keep detailed logs</label><p>Everything that helps improve the translator later: each translation with its timing, each speech bubble (when it appeared, was read, paired and labelled, how far the label lagged behind a walking speaker), screen-check timings, missed bubbles with a picture. Written in the background once a second, so it doesn't slow anything down. Files in <code>logs/</code>: <code>summary.txt</code> (the short version), <code>events.tsv</code>, <code>translations.log</code>, <code>overlay/trace.tsv</code>, <code>overlay/bubbles.log</code>, <code>overlay/missed/</code>. Takes effect at the next start.</p></div>
+          <div class="ctl"><button class="switch" role="switch" data-key="detailedLogs" aria-label="Detailed logs"></button></div></div>
+      </div>
+    </section>
+    <section>
+      <h2>Maintenance</h2>
+      <div class="panel">
+        <div class="row">
+          <button class="btn" id="snap">Save window snapshots</button>
+          <button class="btn" id="open-logs">Open logs folder</button>
+          <button class="btn" id="clear-cache">Forget all translations</button>
+          <button class="btn danger" id="stop">Stop translator</button>
+        </div>
+        <p class="hint" style="margin:10px 0 0" id="windows-line"></p>
+      </div>
+    </section>
+  </div>
+
+  <!-- DICTIONARY -->
+  <div data-page="dict" hidden>
+    <section>
+      <div class="row" style="justify-content:space-between">
+        <div class="seg" role="group" aria-label="Which translations">
+          <button type="button" data-dview="ru-en" aria-pressed="true">Game text <span class="kbd">RU→EN</span></button>
+          <button type="button" data-dview="en-ru" aria-pressed="false">What you type <span class="kbd">EN→RU</span></button>
+          <button type="button" data-dview="words" aria-pressed="false">Russian words</button>
+        </div>
+        <div class="row">
+          <button class="btn" id="d-add" type="button">+ Add a translation</button>
+          <button class="btn" id="d-export" type="button" title="Save your fixes and words to a file">Export</button>
+          <button class="btn" id="d-import" type="button" title="Load fixes from an exported file">Import</button>
+          <input type="file" id="d-import-file" accept=".json,application/json" hidden>
+        </div>
+      </div>
+      <p class="hint" style="margin:10px 0 8px" id="d-help"></p>
+      <div class="dsearch">
+        <input type="text" id="d-q" placeholder="Search Russian or English…" autocomplete="off" spellcheck="false" aria-label="Search the dictionary">
+        <button class="x" id="d-clear" type="button" aria-label="Clear search" hidden>×</button>
+      </div>
+      <div class="dopts">
+        <div id="d-field-wrap"><label for="d-field">Search in</label><select id="d-field"><option value="both">Both languages</option><option value="src">Original only</option><option value="tr">Translation only</option></select></div>
+        <div><label for="d-match">Match</label><select id="d-match"><option value="contains">Contains</option><option value="start">Word starts with</option><option value="word">Whole word</option><option value="exact">Exactly this</option></select></div>
+        <div><label for="d-filter">Show</label><select id="d-filter"></select></div>
+        <div><label for="d-sort">Order</label><select id="d-sort"></select></div>
+      </div>
+      <div class="letters" id="d-letters" aria-label="Jump to letter"></div>
+      <div id="d-new" hidden></div>
+      <div class="dcount" id="d-count">Loading…</div>
+      <div class="chips" id="d-sugg" hidden></div>
+      <div id="d-closest-note" class="hint" hidden></div>
+      <div class="dlist" id="d-list"></div>
+    </section>
+    <section id="d-changes-sec" hidden>
+      <h2>Your changes this session</h2>
+      <div class="panel"><ul class="changes" id="d-changes"></ul></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var state = null, configLoaded = false, saveTimer = null, pending = {}, leverLockUntil = 0;
+
+  function post(path, body) {
+    return fetch(path, { method: 'POST', headers: { 'content-type': 'application/json', 'x-ss13tr': '1' }, body: JSON.stringify(body || {}) })
+      .then(function (r) { return r.json(); });
+  }
+  function action(name, extra) {
+    var b = { action: name }; for (var k in extra) b[k] = extra[k];
+    return post('/api/action', b).then(function (r) { if (r && !r.ok && r.error) alertBox(r.error, true); return r; });
+  }
+  function alertBox(text, bad) {
+    var a = $('alert'); a.textContent = text; a.className = 'alert' + (bad ? '' : ' info'); a.hidden = !text;
+  }
+  function fmt(n) { return (n || 0).toLocaleString('en-US'); }
+
+  // ---- tabs
+  document.querySelectorAll('nav button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('nav button').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+      document.querySelectorAll('[data-page]').forEach(function (p) { p.hidden = p.getAttribute('data-page') !== b.getAttribute('data-tab'); });
+    });
+  });
+
+  // ---- breaker (master switch)
+  $('lever').addEventListener('click', function () {
+    var on = this.getAttribute('aria-checked') !== 'true';
+    leverLockUntil = Date.now() + 2000;
+    setLever(on);
+    if (state && state.showOriginal) action('toggleOriginal');
+    saveKey('enabled', on);
+  });
+  function setLever(on) {
+    $('lever').setAttribute('aria-checked', on ? 'true' : 'false');
+    $('lab-on').className = 'lever-label' + (on ? ' on' : '');
+    $('lab-off').className = 'lever-label' + (on ? '' : ' on');
+    $('breaker-title').textContent = on ? 'Translation is on' : 'Translation is off';
+    $('breaker-sub').textContent = on ? 'Russian text in the game is shown in English.' : 'The game shows its original Russian text.';
+  }
+
+  // ---- settings
+  function saveKey(key, value) {
+    pending[key] = value;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      var p = pending; pending = {};
+      post('/api/config', p).then(function () {
+        $('saved').textContent = 'Saved';
+        setTimeout(function () { $('saved').textContent = ''; }, 1600);
+      });
+    }, 350);
+  }
+  document.querySelectorAll('.switch').forEach(function (s) {
+    s.addEventListener('click', function () {
+      var on = s.getAttribute('aria-checked') !== 'true';
+      s.setAttribute('aria-checked', on ? 'true' : 'false');
+      saveKey(s.getAttribute('data-key'), on);
+    });
+  });
+  // your character's gender: a two-sided slider, Male on the left, Female on the right
+  function showGender(g) {
+    var f = g === 'f';
+    $('myGender').setAttribute('aria-checked', f ? 'true' : 'false');
+    document.querySelectorAll('.two .side').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-g') === (f ? 'f' : 'm')); });
+    $('g-example').textContent = f ? 'я устала' : 'я устал';
+  }
+  function setGender(g) { showGender(g); saveKey('myGender', g); }
+  $('myGender').addEventListener('click', function () { setGender($('myGender').getAttribute('aria-checked') === 'true' ? 'm' : 'f'); });
+  document.querySelectorAll('.two .side').forEach(function (x) { x.addEventListener('click', function () { setGender(x.getAttribute('data-g')); }); });
+  document.querySelectorAll('select[data-key], input[data-key]').forEach(function (el) {
+    var ev = el.type === 'range' || el.tagName === 'SELECT' ? 'change' : 'change';
+    el.addEventListener(ev, function () { saveKey(el.getAttribute('data-key'), el.type === 'range' ? Number(el.value) : el.value); });
+    if (el.type === 'range') el.addEventListener('input', rangeText);
+  });
+  function rangeText() {
+    $('delay-text').textContent = 'The bar can only be translated after you stop typing: ' + (Number($('nativeInputDelayMs').value) / 1000).toFixed(1) + ' s. Wait until it turns Russian, then press Enter. The say box (T) has no wait.';
+    $('hide-text').textContent = 'If no translation arrives within ' + (Number($('maxHideMs').value) / 1000).toFixed(1) + ' seconds, the Russian text is shown.';
+  }
+  function fillConfig(c) {
+    document.querySelectorAll('[data-key]').forEach(function (el) {
+      var k = el.getAttribute('data-key');
+      if (!(k in c) || el === document.activeElement) return;
+      if (el.classList.contains('switch')) el.setAttribute('aria-checked', c[k] ? 'true' : 'false');
+      else el.value = c[k];
+    });
+    if (!('myGender' in pending) && document.activeElement !== $('myGender')) showGender(c.myGender);
+    rangeText();
+  }
+
+  // ---- play actions
+  document.querySelectorAll('[data-dir]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var text = $('tr-text').value.trim(); if (!text) return;
+      $('tr-result').textContent = 'Translating…';
+      post('/api/translate', { text: text, dir: b.getAttribute('data-dir') }).then(function (r) {
+        $('tr-result').textContent = r.ok ? r.result : 'The translation service did not answer.';
+        $('copy-btn').hidden = !r.ok;
+      });
+    });
+  });
+  $('copy-btn').addEventListener('click', function () {
+    navigator.clipboard.writeText($('tr-result').textContent).then(function () {
+      $('copy-btn').textContent = 'Copied'; setTimeout(function () { $('copy-btn').textContent = 'Copy result'; }, 1200);
+    });
+  });
+  $('clear-left').addEventListener('click', function () { action('clearLeftovers'); });
+  // "Fix" buttons on other pages open the Dictionary at that text
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-fix-ru],[data-fix-en]');
+    if (!b || !window.ss13trDict) return;
+    if (b.hasAttribute('data-fix-ru')) window.ss13trDict.fixGameText(b.getAttribute('data-fix-ru'));
+    else window.ss13trDict.fixTyped(b.getAttribute('data-fix-en'));
+  });
+  $('rescan').addEventListener('click', function () { action('rescan'); });
+  $('open-logs').addEventListener('click', function () { action('openLogs'); });
+  $('snap').addEventListener('click', function () { action('snapshot'); });
+  $('ov-restart').addEventListener('click', function () { action('restartOverlay'); });
+  $('wiki-update').addEventListener('click', function () { action('wikiUpdate'); });
+  $('clear-cache').addEventListener('click', function () { if (confirm('Forget every saved translation? Text will be translated again as it appears.')) action('clearCache'); });
+  $('stop').addEventListener('click', function () {
+    if (!confirm('Stop translating? The game keeps running in Russian.')) return;
+    action('stop').then(function () { document.body.innerHTML = '<main><p style="padding:30px">Translator stopped. Start it again with SS13 Russian Translator.cmd.</p></main>'; });
+  });
+
+  // ---- live state
+  function render(s) {
+    state = s;
+    var lamp = $('lamp'), text;
+    if (s.launch.status === 'failed') { lamp.className = 'lamp bad'; text = 'Problem starting the game'; }
+    else if (s.connected && s.gameWindows) { lamp.className = 'lamp ok'; text = 'Translating ' + s.gameWindows + ' game window' + (s.gameWindows === 1 ? '' : 's'); }
+    else if (s.connected) { lamp.className = 'lamp wait'; text = 'BYOND is open. Join a server to start translating.'; }
+    else { lamp.className = 'lamp wait'; text = 'Waiting for BYOND to start'; }
+    $('status-text').textContent = text;
+    $('r-game').textContent = s.connected ? (s.gameWindows ? 'In game' : 'In the hub') : 'Not running';
+    $('r-windows').textContent = fmt(s.gameWindows);
+    $('r-count').textContent = fmt(s.translatedStrings);
+    $('r-cache').textContent = fmt(s.cache);
+    var w = s.warmup || {};
+    $('warm-line').hidden = !(w.total && w.done < w.total);
+    $('warm-line').textContent = 'Pre-translating the interface: ' + fmt(w.done) + ' of ' + fmt(w.total) + '. You can play meanwhile.';
+
+    var msg = '';
+    if (s.launch.problem) msg = s.launch.problem;
+    else if (s.engineOk === false) msg = 'The translation service is not answering. Check your internet connection, or pick another service in Settings.';
+    else if (s.pausedUntil > Date.now()) msg = 'The translation service asked us to slow down. Translation resumes in a few seconds.';
+    if (msg) alertBox(msg, !!s.launch.problem || s.engineOk === false); else $('alert').hidden = true;
+
+    if (!configLoaded || !document.querySelector('[data-page="settings"]').contains(document.activeElement)) {
+      fillConfig(s.config); configLoaded = true;
+    }
+    if (Date.now() > leverLockUntil) setLever(s.config.enabled !== false && !s.showOriginal);
+
+    var sent = $('sent');
+    // (lists are only redrawn when they changed, so their buttons stay clickable)
+    var sentSig = JSON.stringify(s.outgoing.slice(0, 8).map(function (o) { return [o.t, o.to, o.seen, Date.now() - o.t > 15000]; }));
+    if (s.outgoing.length && sentSig !== render.sentSig) {
+      render.sentSig = sentSig;
+      sent.innerHTML = '';
+      s.outgoing.slice(0, 8).forEach(function (o) {
+        var li = document.createElement('li');
+        var a = document.createElement('div'); a.textContent = o.to;
+        var b = document.createElement('div'); b.className = 'from'; b.textContent = o.where + ': ' + o.from;
+        var c = document.createElement('div'); c.className = 'from';
+        if (o.seen) { c.textContent = '\u2713 Seen in chat in Russian'; c.style.color = 'var(--ok)'; }
+        else if (Date.now() - o.t > 15000) c.textContent = 'Not seen in chat (normal for the input bar if you pressed Enter, or if the chat tab was filtered)';
+        else c.textContent = 'Sent, waiting for it to show in chat…';
+        var fixb = document.createElement('button'); fixb.className = 'linkbtn'; fixb.type = 'button'; fixb.textContent = 'Correct the Russian';
+        fixb.setAttribute('data-fix-en', o.from); fixb.title = 'Choose the Russian that is sent for this English (Dictionary)';
+        c.appendChild(document.createTextNode(' ')); c.appendChild(fixb);
+        li.appendChild(a); li.appendChild(b); li.appendChild(c); sent.appendChild(li);
+      });
+    }
+
+    var tb = $('left');
+    var leftSig = JSON.stringify(s.leftovers);
+    if (leftSig === render.leftSig) {}
+    else if (s.leftovers.length) {
+      render.leftSig = leftSig;
+      tb.innerHTML = '';
+      s.leftovers.forEach(function (l) {
+        var tr = document.createElement('tr');
+        ['n', 'w', ''].forEach(function (cls, i) {
+          var td = document.createElement('td'); if (cls) td.className = cls;
+          td.textContent = i === 0 ? l.count : i === 1 ? l.where : l.text; tr.appendChild(td);
+        });
+        var fx = document.createElement('td'); fx.style.width = '40px';
+        var fb = document.createElement('button'); fb.className = 'linkbtn'; fb.type = 'button'; fb.textContent = 'Fix'; fb.setAttribute('data-fix-ru', l.text);
+        fb.title = 'Give this text an English translation (Dictionary)';
+        fx.appendChild(fb); tr.appendChild(fx);
+        tb.appendChild(tr);
+      });
+    } else { render.leftSig = leftSig; tb.innerHTML = '<tr><td class="empty">None seen.</td></tr>'; }
+
+    var ov = s.overlay || {};
+    var ovText = { running: 'Speech bubbles: English shown over the Russian', starting: 'Speech bubbles: starting…', off: 'Speech bubbles: off', error: 'Speech bubbles: ' + (ov.problem || 'not working') };
+    $('ov-text').textContent = ovText[ov.status] || ('Speech bubbles: ' + ov.status);
+    $('ov-lamp').className = 'lamp ' + (ov.status === 'running' ? 'ok' : ov.status === 'error' ? 'bad' : 'wait');
+    $('ov-diag').textContent = ov.status === 'running' ? 'Screen checks: ' + fmt(ov.frames) + ' (last took ' + ov.frameMs + ' ms). Map zoom: ' + (ov.zoom || 'not found yet') + '. Spoken chat lines: ' + fmt(ov.chatLines || 0) + ', bubbles matched: ' + fmt(ov.matched || 0) + '.' + (ov.flicker ? ' Note: on this Windows version the boxes blink briefly while the screen is checked.' : '') + ((ov.tips || []).length ? ' Hover names: ' + ov.tips.slice(0, 4).map(function (t) { return t.ru + ' → ' + t.en; }).join(', ') + '.' : '') : '';
+    var seen = $('ov-seen');
+    if ((ov.recent || []).length) {
+      seen.innerHTML = '';
+      (ov.recent || []).forEach(function (h) {
+        var tr = document.createElement('tr');
+        var a = document.createElement('td'); a.className = 'w'; a.textContent = h.name || '?';
+        var b = document.createElement('td'); b.textContent = (h.en || '…') + '  (' + h.ru + ')';
+        var c = document.createElement('td'); c.className = 'w'; c.textContent = h.lines + ' line' + (h.lines > 1 ? 's' : '') + ', fit ' + h.score;
+        tr.appendChild(a); tr.appendChild(b); tr.appendChild(c); seen.appendChild(tr);
+      });
+    }
+
+    var wk = s.wiki || {};
+    var off = wk.offline ? fmt(wk.offline) + ' names from the downloaded wiki pages are built in. ' : '';
+    $('wiki-text').textContent = off + (wk.running ? 'Reading the live wiki now…' : wk.built ? (fmt(wk.pairs) + ' more word pairs from the live wiki (' + String(wk.built).slice(0, 10) + '); ' + fmt(wk.game) + ' game word forms in use.') + (wk.error ? ' Last update failed: ' + wk.error : '') : (wk.error ? 'Could not read the live wiki: ' + wk.error : 'The live wiki is read once in the background shortly after the translator starts.'));
+    $('wiki-update').disabled = !!wk.running;
+    var log = $('log'), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+    log.textContent = s.log.join('\n');
+    if (atBottom) log.scrollTop = log.scrollHeight;
+    $('windows-line').textContent = s.windows.length ? 'Game windows: ' + s.windows.join(', ') : 'No game windows open.';
+  }
+  var fails = 0;
+  // Each panel window has an id. When the translator is started again it opens a fresh panel window;
+  // an older one that is still open then closes itself, so there is only ever one.
+  var PID = Math.random().toString(36).slice(2, 10), bootSeen = null, restartSeenAt = 0;
+  function poll() {
+    fetch('/api/state?pid=' + PID, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (s) {
+      fails = 0;
+      if (bootSeen && s.boot && s.boot !== bootSeen) { restartSeenAt = Date.now(); bootSeen = s.boot; }
+      else if (!bootSeen) bootSeen = s.boot;
+      if (restartSeenAt && Date.now() - restartSeenAt < 20000 && s.panels > 1) { document.documentElement.setAttribute('data-closing', '1'); try { window.close(); } catch (e) {} }
+      try { render(s); } catch (e) { if (window.console) console.error(e); }
+    }, function () {
+      fails++;
+      $('lamp').className = 'lamp ' + (fails > 3 ? 'bad' : 'wait');
+      $('status-text').textContent = fails > 3 ? 'The translator is not running. Start it with SS13 Russian Translator.cmd.' : 'Connecting to the translator…';
+    }).finally(function () { setTimeout(poll, 1000); });
+  }
+  poll();
+})();
+</script>
+<script>
+// ---------------------------------------------------------------- Dictionary page
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function post(body) {
+    return fetch('/api/dict', { method: 'POST', headers: { 'content-type': 'application/json', 'x-ss13tr': '1' }, body: JSON.stringify(body || {}) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, error: 'The translator is not running.' }; });
+  }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function fmt(n) { return (n || 0).toLocaleString('en-US'); }
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem('ss13tr.dict.' + k); localStorage.setItem('ss13tr.dict.' + k, v); } catch (e) { return null; } }
+
+  var view = store('view') || 'ru-en';
+  if (['ru-en', 'en-ru', 'words'].indexOf(view) < 0) view = 'ru-en';
+  var S = { q: '', field: 'both', match: 'contains', filter: 'all', sort: 'auto', letter: '' };
+  var seq = 0, loaded = false, offset = 0, total = 0, busy = false, items = [], selIndex = -1, openKey = null, hlText = '';
+  var changes = [];
+
+  var HELP = {
+    'ru-en': 'Every piece of game text the translator has saved, with its English. Click a line to correct it: your fix is used from then on (also in the windows open now). Search finds Russian typed in Latin letters ("herasebe") and text typed with the wrong keyboard layout too.',
+    'en-ru': 'Everything you typed in English and the Russian that was sent for it. Correct a line and that Russian is sent whenever you type the same English again.',
+    'words': 'Every Russian word that appears in the saved game text, with how it is translated on its own. Give a word an English meaning and it is used inside every sentence from now on (good for names, slang and game terms the service gets wrong).'
+  };
+  var FILTERS = {
+    text: [['all', 'Everything'], ['fixed', 'Only my fixes'], ['sus', 'Looks untranslated'], ['nums', 'With numbers']],
+    words: [['all', 'Every word'], ['game', 'With a game meaning'], ['mine', 'Words I set']]
+  };
+  var SORTS = {
+    text: [['auto', 'Best match / A→Z'], ['src', 'A→Z (original)'], ['tr', 'A→Z (translation)'], ['newest', 'Newest first']],
+    words: [['src', 'A→Z'], ['count', 'Most used first']]
+  };
+  var RU_LETTERS = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ'.split('');
+  var EN_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+  function fillSelect(sel, opts, val) {
+    sel.innerHTML = '';
+    opts.forEach(function (o) { var op = el('option', null, o[1]); op.value = o[0]; sel.appendChild(op); });
+    sel.value = opts.some(function (o) { return o[0] === val; }) ? val : opts[0][0];
+    return sel.value;
+  }
+
+  function setupView() {
+    document.querySelectorAll('[data-dview]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-dview') === view ? 'true' : 'false'); });
+    $('d-help').textContent = HELP[view];
+    var words = view === 'words';
+    S.filter = fillSelect($('d-filter'), words ? FILTERS.words : FILTERS.text, S.filter);
+    S.sort = fillSelect($('d-sort'), words ? SORTS.words : SORTS.text, S.sort);
+    $('d-field-wrap').style.visibility = words ? 'hidden' : '';
+    var f = $('d-field');
+    f.options[1].textContent = view === 'en-ru' ? 'English only' : 'Russian only';
+    f.options[2].textContent = view === 'en-ru' ? 'Russian only' : 'English only';
+    $('d-q').placeholder = words ? 'Search a Russian word (Latin letters work too: "herasebe")…' : view === 'en-ru' ? 'Search what you typed, or the Russian…' : 'Search Russian or English…   ( / )';
+    var lb = $('d-letters'); lb.innerHTML = '';
+    (view === 'en-ru' ? EN_LETTERS : RU_LETTERS).forEach(function (L) {
+      var b = el('button', null, L); b.type = 'button'; b.title = 'Jump to ' + L;
+      b.addEventListener('click', function () { jumpLetter(L); });
+      lb.appendChild(b);
+    });
+    $('d-add').hidden = words;
+    closeNew();
+  }
+
+  // ---- highlighting what was searched for (ё and е count as the same letter)
+  function hlRegex(q) {
+    var toks = [];
+    String(q || '').replace(/"([^"]+)"|(\S+)/g, function (m, a, b) { var t = (a || b || '').trim(); if (t.length) toks.push(t); return m; });
+    if (!toks.length) return null;
+    var parts = toks.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[её]/gi, '[её]'); });
+    try { return new RegExp('(' + parts.join('|') + ')', 'gi'); } catch (e) { return null; }
+  }
+  function putText(node, text, re) {
+    text = text == null ? '' : String(text);
+    if (!re) { node.textContent = text; return; }
+    var last = 0, m; re.lastIndex = 0;
+    while ((m = re.exec(text))) {
+      if (!m[0].length) { re.lastIndex++; continue; }
+      if (m.index > last) node.appendChild(document.createTextNode(text.slice(last, m.index)));
+      node.appendChild(el('mark', null, m[0]));
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) node.appendChild(document.createTextNode(text.slice(last)));
+  }
+
+  // ---- loading
+  function load(more, opts) {
+    opts = opts || {};
+    var my = ++seq;
+    if (!more) { offset = 0; }
+    busy = true;
+    var body = view === 'words'
+      ? { op: 'words', q: S.q, match: S.match, filter: S.filter, sort: S.sort, offset: more ? offset : 0, limit: 150, letter: more ? '' : S.letter, fresh: !!opts.fresh }
+      : { op: 'list', dir: view, q: S.q, field: S.field, match: S.match, filter: S.filter, sort: S.sort, offset: more ? offset : 0, limit: 150, letter: more ? '' : S.letter, key: opts.key, fresh: !!opts.fresh };
+    return post(body).then(function (r) {
+      if (my !== seq) return;
+      busy = false;
+      if (!r || !r.ok) { $('d-count').textContent = (r && r.error) || 'Could not load the dictionary.'; return; }
+      S.letter = '';
+      render(r, more);
+    });
+  }
+
+  function render(r, more) {
+    var list = $('d-list');
+    var words = view === 'words';
+    var shown = r.items || [];
+    var closest = null;
+    if (!more) {
+      list.innerHTML = '';
+      items = [];
+      selIndex = -1;
+      var head = el('div', 'dhead' + (words ? ' words' : ''));
+      if (words) ['Russian word', 'Texts', 'English', ''].forEach(function (t) { head.appendChild(el('div', null, t)); });
+      else (view === 'en-ru' ? ['What you typed', 'Russian sent', ''] : ['Russian (game)', 'English shown', '']).forEach(function (t) { head.appendChild(el('div', null, t)); });
+      list.appendChild(head);
+      // count line
+      var c = $('d-count'); c.innerHTML = '';
+      if (words) {
+        c.appendChild(el('b', null, fmt(r.total)));
+        c.appendChild(document.createTextNode(S.q || S.filter !== 'all' ? ' of ' + fmt(r.all) + ' Russian words' : ' different Russian words in the saved game text'));
+      } else {
+        var k = r.counts || {};
+        c.appendChild(el('b', null, fmt(r.total)));
+        c.appendChild(document.createTextNode((S.q || S.filter !== 'all' ? ' found' : ' saved translations') + '  ·  ' + fmt(k.all) + ' in total, ' + fmt(k.fixed) + ' fixed by you' + (view === 'ru-en' ? ', ' + fmt(k.sus) + ' look untranslated' : '')));
+      }
+      // did you mean
+      var sg = $('d-sugg'); sg.innerHTML = '';
+      var sugg = r.suggestions || [];
+      if (!words && sugg.length) {
+        sg.appendChild(el('span', 'hint', 'Did you mean:'));
+        sugg.forEach(function (s) {
+          var ch = el('button', 'chip', s.text); ch.type = 'button'; ch.title = s.why;
+          ch.appendChild(el('small', null, fmt(s.n)));
+          ch.addEventListener('click', function () { setQuery(s.text); });
+          sg.appendChild(ch);
+        });
+      }
+      sg.hidden = words || !sugg.length;
+      closest = !words && r.closest && !shown.length ? r.closest : null;
+      var note = $('d-closest-note');
+      if (closest) {
+        note.textContent = 'Nothing contains "' + S.q + '". Closest match: "' + closest.q + '" (' + closest.why + ', ' + fmt(closest.total) + ' found):';
+        shown = closest.items;
+      } else if (words && S.q && !shown.length && (r.suggestions || []).length) {
+        note.textContent = 'No word contains "' + S.q + '". The most similar words:';
+        shown = r.suggestions;
+      } else note.textContent = '';
+      note.hidden = !note.textContent;
+      hlText = closest ? closest.q : S.q;
+      if (!shown.length) {
+        var e = el('div', 'more', S.q ? 'Nothing found. Try fewer letters, "Contains", or the other list above.' : 'Nothing saved yet. Play for a while and the translations appear here.');
+        list.appendChild(e);
+      }
+    } else {
+      var old = list.querySelector('.more'); if (old) old.remove();
+    }
+    var re = hlRegex(hlText);
+    shown.forEach(function (it) { items.push(it); list.appendChild(words ? wordRow(it, re) : textRow(it, re)); });
+    offset = (r.offset || 0) + (r.items || []).length;
+    total = closest ? shown.length : r.total;
+    if (!closest && offset < r.total) {
+      var m = el('div', 'more');
+      var b = el('button', 'btn', 'Show more (' + fmt(r.total - offset) + ' left)'); b.type = 'button';
+      b.addEventListener('click', function () { load(true); });
+      m.appendChild(b); list.appendChild(m);
+      watchMore(m);
+    }
+    if (openKey != null) {
+      var idx = -1;
+      for (var i = 0; i < items.length; i++) if ((words ? items[i].word : items[i].key) === openKey) { idx = i; break; }
+      if (idx >= 0) openEditor(idx, true);
+    }
+  }
+
+  var moreObs = null;
+  function watchMore(node) {
+    if (!('IntersectionObserver' in window)) return;
+    if (moreObs) moreObs.disconnect();
+    moreObs = new IntersectionObserver(function (ents) {
+      if (ents.some(function (x) { return x.isIntersecting; }) && !busy) { moreObs.disconnect(); load(true); }
+    }, { rootMargin: '300px' });
+    moreObs.observe(node);
+  }
+
+  function badges(cell, it) {
+    if (it.fixed) cell.appendChild(el('span', 'badge fix', 'your fix'));
+    if (it.sus && !it.fixed) cell.appendChild(el('span', 'badge sus', 'untranslated?'));
+    if (it.tpl) { var b = el('span', 'badge', '{n}'); b.title = 'Contains numbers that change; {1}, {2}… stand for them'; cell.appendChild(b); }
+  }
+  function textRow(it, re) {
+    var row = el('div', 'drow'); row.tabIndex = -1;
+    var a = el('div', 'src'); putText(a, it.src, re);
+    var b = el('div', 'tr' + (it.tr == null ? ' none' : '')); putText(b, it.tr == null ? 'not translated' : it.tr, re);
+    var c = el('div'); badges(c, it);
+    row.appendChild(a); row.appendChild(b); row.appendChild(c);
+    row.addEventListener('click', function (ev) { if (ev.target.closest('.deditor')) return; toggle(row); });
+    return row;
+  }
+  function wordRow(it, re) {
+    var row = el('div', 'drow words'); row.tabIndex = -1;
+    var a = el('div', 'src'); putText(a, it.word, re);
+    var n = el('div', 'n', fmt(it.n));
+    var meaning = it.fix || it.game || it.machine;
+    var b = el('div', 'tr' + (meaning ? '' : ' none'), meaning || 'not translated on its own yet');
+    var c = el('div');
+    if (it.mine) c.appendChild(el('span', 'badge fix', 'set by you'));
+    else if (it.game) c.appendChild(el('span', 'badge game', 'game word'));
+    row.appendChild(a); row.appendChild(n); row.appendChild(b); row.appendChild(c);
+    row.addEventListener('click', function (ev) { if (ev.target.closest('.deditor')) return; toggle(row); });
+    return row;
+  }
+  function rowIndex(row) {
+    var rows = $('d-list').querySelectorAll('.drow');
+    for (var i = 0; i < rows.length; i++) if (rows[i] === row) return i;
+    return -1;
+  }
+  function toggle(row) {
+    var i = rowIndex(row);
+    if (i === selIndex && row.nextSibling && row.nextSibling.classList && row.nextSibling.classList.contains('deditor')) { closeEditor(); return; }
+    openEditor(i);
+  }
+  function closeEditor() {
+    var ed = $('d-list').querySelector('.deditor'); if (ed) ed.remove();
+    var s = $('d-list').querySelector('.drow.sel'); if (s) s.classList.remove('sel');
+    openKey = null;
+  }
+
+  function msg(box, text, kind) { box.textContent = text || ''; box.className = 'msg' + (kind ? ' ' + kind : ''); }
+
+  function openEditor(i, keepFocus) {
+    closeEditor();
+    var rows = $('d-list').querySelectorAll('.drow');
+    var row = rows[i]; if (!row) return;
+    selIndex = i;
+    row.classList.add('sel');
+    var it = items[i];
+    var ed = view === 'words' ? wordEditor(it) : textEditor(it);
+    row.parentNode.insertBefore(ed, row.nextSibling);
+    openKey = view === 'words' ? it.word : it.key;
+    if (!keepFocus) {
+      var ta = ed.querySelector('textarea, input[type=text]');
+      if (ta) { ta.focus(); ta.select(); }
+      ed.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function bareWord(s) { return String(s || '').trim().replace(/^[^A-Za-zА-Яа-яЁё0-9]+|[^A-Za-zА-Яа-яЁё0-9]+$/g, ''); }
+
+  // ---- editing one saved text
+  function textEditor(it) {
+    var en = view === 'en-ru';
+    var ed = el('div', 'deditor');
+    ed.appendChild(el('div', 'lbl', en ? 'What you typed' : 'Russian, as the game shows it'));
+    var srcRow = el('div', 'row');
+    var src = el('div', 'box grow', it.src); srcRow.appendChild(src);
+    var cp = el('button', 'btn', 'Copy'); cp.type = 'button';
+    cp.addEventListener('click', function () { copy(it.src, cp); });
+    srcRow.appendChild(cp);
+    ed.appendChild(srcRow);
+    if (it.tpl) ed.appendChild(el('p', 'hint', '{1}' + (it.markers > 1 ? ', {2}…' : '') + ' stand for numbers that change (the same translation is used for every number). Keep them in your translation.'));
+    ed.appendChild(el('div', 'lbl', 'The translation service gave'));
+    ed.appendChild(el('div', 'box machine', it.machine == null ? '— (nothing yet)' : it.machine));
+    ed.appendChild(el('div', 'lbl', it.fixed ? 'Your translation (in use)' : (en ? 'Russian to send instead' : 'Your translation')));
+    var ta = el('textarea'); ta.value = it.tr == null ? '' : it.tr; ta.rows = Math.min(6, Math.max(2, Math.ceil(String(ta.value).length / 70)));
+    ta.setAttribute('aria-label', 'Your translation');
+    ed.appendChild(ta);
+    // game word: also use this for the word everywhere
+    var gwWrap = null, gwCheck = null, gwFrom = null, gwTo = null;
+    var bare = bareWord(it.src);
+    if (!it.tpl && bare && bare.split(/\s+/).length <= 4) {
+      gwWrap = el('div');
+      var lab = el('label', 'row'); lab.style.marginTop = '8px';
+      gwCheck = el('input'); gwCheck.type = 'checkbox';
+      lab.appendChild(gwCheck);
+      lab.appendChild(document.createTextNode(en ? ' Also use this Russian for these English words inside other sentences' : ' Also translate this word / phrase like this inside every other sentence'));
+      gwWrap.appendChild(lab);
+      var gw = el('div', 'gw'); gw.hidden = true;
+      gw.appendChild(el('span', null, en ? 'English' : 'Russian'));
+      gwFrom = el('input'); gwFrom.type = 'text'; gwFrom.value = bare.toLowerCase(); gw.appendChild(gwFrom);
+      gw.appendChild(el('span', null, en ? '→ Russian' : '→ English'));
+      gwTo = el('input'); gwTo.type = 'text'; gwTo.value = bareWord(ta.value); gw.appendChild(gwTo);
+      gwWrap.appendChild(gw);
+      gwCheck.addEventListener('change', function () { gw.hidden = !gwCheck.checked; if (gwCheck.checked) gwTo.value = bareWord(ta.value); });
+      ta.addEventListener('input', function () { if (gwCheck.checked) gwTo.value = bareWord(ta.value); });
+      ed.appendChild(gwWrap);
+    }
+    var btns = el('div', 'row'); btns.style.marginTop = '10px';
+    var save = el('button', 'btn primary', 'Save'); save.type = 'button'; save.title = 'Ctrl+Enter';
+    var again = el('button', 'btn', 'Ask the service again'); again.type = 'button'; again.title = 'Get a fresh machine translation';
+    var undo = el('button', 'btn', 'Remove my fix'); undo.type = 'button'; undo.hidden = !it.fixed; undo.title = 'Go back to the machine translation';
+    var forget = el('button', 'btn danger', 'Forget'); forget.type = 'button'; forget.title = 'Delete this saved translation (it is translated again next time)';
+    var close = el('button', 'btn', 'Close'); close.type = 'button'; close.title = 'Esc';
+    [save, again, undo, forget, close].forEach(function (b) { btns.appendChild(b); });
+    ed.appendChild(btns);
+    var m = el('div', 'msg'); ed.appendChild(m);
+
+    function done(r, what) {
+      if (!r.ok) { msg(m, r.error || 'Did not work.', 'bad'); return; }
+      if (r.before) addChange(what, it.key, r.before, r.entry);
+      msg(m, what === 'save' ? 'Saved. It is used from now on' + (view === 'ru-en' ? ' and shown in the open game windows.' : '.') : what === 'again' ? 'New machine translation saved.' : what === 'revert' ? 'Your fix is removed.' : 'Forgotten.', 'good');
+      if (r.entry) {
+        items[selIndex] = r.entry; openKey = r.entry.key;
+        var row = $('d-list').querySelectorAll('.drow')[selIndex];
+        if (row) { var nr = textRow(r.entry, hlRegex(hlText)); row.replaceWith(nr); nr.classList.add('sel'); }
+        if (what !== 'save') { ta.value = r.entry.tr == null ? '' : r.entry.tr; ed.querySelector('.box.machine').textContent = r.entry.machine == null ? '—' : r.entry.machine; }
+        undo.hidden = !r.entry.fixed;
+      }
+      if (what === 'forget') { setTimeout(function () { closeEditor(); load(false); }, 600); }
+    }
+    save.addEventListener('click', function () {
+      var body = { op: 'save', dir: view, key: it.key, text: ta.value };
+      if (gwCheck && gwCheck.checked) body.gameWord = { from: gwFrom.value, to: gwTo.value };
+      msg(m, 'Saving…'); post(body).then(function (r) { done(r, 'save'); if (r.ok && r.game) msg(m, 'Saved. "' + r.game.from + '" is now translated as "' + r.game.to + '" everywhere; the game windows are being updated.', 'good'); });
+    });
+    again.addEventListener('click', function () { msg(m, 'Asking the translation service…'); post({ op: 'retranslate', dir: view, key: it.key }).then(function (r) { done(r, 'again'); }); });
+    undo.addEventListener('click', function () { msg(m, 'Removing your fix…'); post({ op: 'revert', dir: view, key: it.key }).then(function (r) { done(r, 'revert'); }); });
+    forget.addEventListener('click', function () { post({ op: 'remove', dir: view, key: it.key }).then(function (r) { done(r, 'forget'); }); });
+    close.addEventListener('click', function () { closeEditor(); });
+    ta.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save.click(); }
+      if (e.key === 'Escape') { e.preventDefault(); closeEditor(); $('d-q').focus(); }
+    });
+    return ed;
+  }
+
+  // ---- editing one Russian word
+  function wordEditor(it) {
+    var ed = el('div', 'deditor');
+    ed.appendChild(el('div', 'lbl', 'Russian word (in ' + fmt(it.n) + ' saved text' + (it.n === 1 ? '' : 's') + ')'));
+    var r1 = el('div', 'row'); r1.appendChild(el('div', 'box grow', it.word));
+    var cp = el('button', 'btn', 'Copy'); cp.type = 'button'; cp.addEventListener('click', function () { copy(it.word, cp); }); r1.appendChild(cp);
+    ed.appendChild(r1);
+    ed.appendChild(el('div', 'lbl', 'Translated now as'));
+    var now = el('div', 'box machine');
+    now.textContent = it.mine ? it.game + '  (set by you)' : it.game ? it.game + '  (game dictionary)' : it.machine ? it.machine + '  (translation service, on its own)' : '— (never translated on its own)';
+    ed.appendChild(now);
+    ed.appendChild(el('div', 'lbl', 'English for this word, used inside every sentence'));
+    var inp = el('input'); inp.type = 'text'; inp.value = it.game || it.machine || ''; inp.setAttribute('aria-label', 'English for this word');
+    ed.appendChild(inp);
+    ed.appendChild(el('p', 'hint', 'Other forms of the word (блоб, блоба, блобом…) are recognised automatically. Leave common words to the translation service: a fixed meaning can sound wrong in some sentences.'));
+    var btns = el('div', 'row');
+    var save = el('button', 'btn primary', 'Save as game word'); save.type = 'button'; save.title = 'Enter';
+    var tr = el('button', 'btn', 'Translate it on its own'); tr.type = 'button';
+    var show = el('button', 'btn', 'Show texts with it'); show.type = 'button';
+    var rm = el('button', 'btn danger', 'Remove my word'); rm.type = 'button'; rm.hidden = !it.mine;
+    var close = el('button', 'btn', 'Close'); close.type = 'button';
+    [save, tr, show, rm, close].forEach(function (b) { btns.appendChild(b); });
+    ed.appendChild(btns);
+    var m = el('div', 'msg'); ed.appendChild(m);
+    save.addEventListener('click', function () {
+      msg(m, 'Saving…');
+      post({ op: 'saveWord', dir: 'ru-en', word: it.word, text: inp.value }).then(function (r) {
+        if (!r.ok) return msg(m, r.error, 'bad');
+        addChange('word', it.word, null, null, inp.value);
+        msg(m, 'Saved: "' + r.word + '" → "' + r.to + '" everywhere. Saved texts that used another meaning are translated again; the game windows are being updated.', 'good');
+        it.mine = true; it.game = r.to; rm.hidden = false;
+        now.textContent = r.to + '  (set by you)';
+      });
+    });
+    tr.addEventListener('click', function () {
+      msg(m, 'Asking the translation service…');
+      post({ op: 'translateWord', word: it.word }).then(function (r) {
+        if (!r.ok) return msg(m, r.error, 'bad');
+        msg(m, 'The service says: "' + r.en + '"', 'good');
+        if (!it.mine && !it.game) inp.value = r.en;
+      });
+    });
+    show.addEventListener('click', function () { switchView('ru-en'); $('d-match').value = 'word'; S.match = 'word'; setQuery(it.word); });
+    rm.addEventListener('click', function () {
+      post({ op: 'removeWord', dir: 'ru-en', word: it.word }).then(function (r) {
+        if (!r.ok) return msg(m, r.error, 'bad');
+        msg(m, 'Removed. The built-in dictionaries and the translation service take over again.', 'good');
+        it.mine = false; rm.hidden = true;
+      });
+    });
+    close.addEventListener('click', function () { closeEditor(); });
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); save.click(); }
+      if (e.key === 'Escape') { e.preventDefault(); closeEditor(); $('d-q').focus(); }
+    });
+    return ed;
+  }
+
+  // ---- a new entry ("Add a translation")
+  function closeNew() { var n = $('d-new'); n.hidden = true; n.innerHTML = ''; }
+  function openNew(srcText) {
+    var n = $('d-new'); n.innerHTML = ''; n.hidden = false;
+    var en = view === 'en-ru';
+    var ed = el('div', 'deditor'); ed.style.borderRadius = '6px'; ed.style.marginBottom = '10px';
+    ed.appendChild(el('div', 'lbl', en ? 'English you type (exactly)' : 'Russian text, exactly as the game shows it'));
+    var a = el('input'); a.type = 'text'; a.value = srcText || ''; ed.appendChild(a);
+    ed.appendChild(el('div', 'lbl', en ? 'Russian to send' : 'English to show'));
+    var b = el('input'); b.type = 'text'; ed.appendChild(b);
+    var btns = el('div', 'row'); btns.style.marginTop = '10px';
+    var save = el('button', 'btn primary', 'Save'); save.type = 'button';
+    var ask = el('button', 'btn', 'Suggest a translation'); ask.type = 'button';
+    var cancel = el('button', 'btn', 'Cancel'); cancel.type = 'button';
+    btns.appendChild(save); btns.appendChild(ask); btns.appendChild(cancel); ed.appendChild(btns);
+    var m = el('div', 'msg'); ed.appendChild(m);
+    n.appendChild(ed);
+    (srcText ? b : a).focus();
+    save.addEventListener('click', function () {
+      post({ op: 'save', dir: view, isNew: true, key: a.value, text: b.value }).then(function (r) {
+        if (!r.ok) return msg(m, r.error, 'bad');
+        addChange('save', r.entry ? r.entry.key : a.value, r.before || {}, r.entry);
+        closeNew();
+        S.q = ''; $('d-q').value = ''; S.sort = 'newest'; $('d-sort').value = 'newest'; S.filter = 'all'; $('d-filter').value = 'all';
+        openKey = r.entry ? r.entry.key : null;
+        load(false, { key: openKey });
+      });
+    });
+    ask.addEventListener('click', function () {
+      if (!a.value.trim()) return msg(m, 'Type the text first.', 'bad');
+      msg(m, 'Asking the translation service…');
+      fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json', 'x-ss13tr': '1' }, body: JSON.stringify({ text: a.value, dir: view }) })
+        .then(function (r) { return r.json(); }).then(function (r) { if (r.ok) { b.value = r.result; msg(m, ''); b.focus(); } else msg(m, 'The service did not answer.', 'bad'); });
+    });
+    cancel.addEventListener('click', closeNew);
+    [a, b].forEach(function (x) { x.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); save.click(); } if (e.key === 'Escape') closeNew(); }); });
+  }
+
+  // ---- this session's changes, with undo
+  function addChange(what, key, before, entry, extra) {
+    changes.unshift({ what: what, dir: view, key: key, before: before, entry: entry, extra: extra, t: new Date() });
+    if (changes.length > 30) changes.pop();
+    renderChanges();
+  }
+  function renderChanges() {
+    var ul = $('d-changes'); ul.innerHTML = '';
+    $('d-changes-sec').hidden = !changes.length;
+    changes.forEach(function (c, i) {
+      var li = el('li');
+      var label = c.what === 'word' ? 'Word "' + c.key + '" → "' + c.extra + '"' :
+        (c.what === 'save' ? 'Fixed' : c.what === 'again' ? 'Asked again' : c.what === 'revert' ? 'Removed fix' : 'Forgot') + ': "' + String(c.entry ? c.entry.src : c.key).slice(0, 80) + '"' + (c.entry && c.entry.tr ? ' → "' + String(c.entry.tr).slice(0, 80) + '"' : '');
+      li.appendChild(el('span', 'hint', c.t.toTimeString().slice(0, 5)));
+      li.appendChild(el('span', 'what', label));
+      if (c.what !== 'word' && !c.undone) {
+        var u = el('button', 'linkbtn', 'Undo'); u.type = 'button';
+        u.addEventListener('click', function () {
+          post({ op: 'put', dir: c.dir, key: c.key, machine: c.before.machine, fix: c.before.fix }).then(function (r) {
+            if (!r.ok) return alert(r.error);
+            c.undone = true; renderChanges(); if (view === c.dir) load(false);
+          });
+        });
+        li.appendChild(u);
+      } else if (c.undone) li.appendChild(el('span', 'hint', 'undone'));
+      ul.appendChild(li);
+    });
+  }
+
+  function copy(text, btn) {
+    var ok = function () { var t = btn.textContent; btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = t; }, 1200); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, function () {});
+  }
+
+  // ---- search box and options
+  var tmr = null;
+  function setQuery(q) { $('d-q').value = q; S.q = q; $('d-clear').hidden = !q; load(false); }
+  $('d-q').addEventListener('input', function () {
+    S.q = this.value; $('d-clear').hidden = !S.q;
+    clearTimeout(tmr); tmr = setTimeout(function () { closeEditor(); load(false); }, 180);
+  });
+  $('d-q').addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      if (items.length) { e.preventDefault(); openEditor(Math.max(0, selIndex)); }
+    } else if (e.key === 'Escape') { if (this.value) setQuery(''); }
+  });
+  $('d-clear').addEventListener('click', function () { setQuery(''); $('d-q').focus(); });
+  ['field', 'match', 'filter', 'sort'].forEach(function (k) {
+    $('d-' + k).addEventListener('change', function () { S[k] = this.value; closeEditor(); load(false); });
+  });
+  function jumpLetter(L) {
+    S.letter = L; S.q = ''; $('d-q').value = ''; $('d-clear').hidden = true;
+    if (view !== 'words' && S.sort !== 'src' && S.sort !== 'tr') { S.sort = 'src'; $('d-sort').value = 'src'; }
+    if (view === 'words' && S.sort !== 'src') { S.sort = 'src'; $('d-sort').value = 'src'; }
+    closeEditor(); load(false);
+  }
+  function switchView(v) {
+    if (v === view) return;
+    view = v; store('view', v); closeEditor(); openKey = null;
+    setupView(); load(false);
+  }
+  document.querySelectorAll('[data-dview]').forEach(function (b) { b.addEventListener('click', function () { switchView(b.getAttribute('data-dview')); }); });
+  $('d-add').addEventListener('click', function () { openNew(''); });
+
+  // ---- keyboard: / to search, arrows to move between lines while the list has focus
+  document.addEventListener('keydown', function (e) {
+    var page = document.querySelector('[data-page="dict"]');
+    if (!page || page.hidden) return;
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    var typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    if (e.key === '/' && !typing) { e.preventDefault(); $('d-q').focus(); $('d-q').select(); return; }
+    if (typing) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!items.length) return;
+      e.preventDefault();
+      var i = selIndex < 0 ? 0 : Math.max(0, Math.min(items.length - 1, selIndex + (e.key === 'ArrowDown' ? 1 : -1)));
+      openEditor(i);
+    } else if (e.key === 'Escape') closeEditor();
+  });
+
+  // ---- export / import
+  $('d-export').addEventListener('click', function () {
+    post({ op: 'export' }).then(function (r) {
+      if (!r.ok) return alert(r.error || 'Export failed');
+      var blob = new Blob([JSON.stringify(r.data, null, 1)], { type: 'application/json' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ss13-translator-fixes-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+  });
+  $('d-import').addEventListener('click', function () { $('d-import-file').value = ''; $('d-import-file').click(); });
+  $('d-import-file').addEventListener('change', function () {
+    var f = this.files && this.files[0]; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var data; try { data = JSON.parse(rd.result); } catch (e) { alert('That file is not valid JSON.'); return; }
+      post({ op: 'import', data: data }).then(function (r) {
+        if (!r.ok) return alert(r.error);
+        $('d-count').textContent = 'Imported ' + fmt(r.fixes) + ' fixes and ' + fmt(r.words) + ' words.';
+        load(false, { fresh: true });
+      });
+    };
+    rd.readAsText(f);
+  });
+
+  // ---- opening the page (also from other pages: "Fix" buttons)
+  function showPage() {
+    var b = document.querySelector('nav button[data-tab="dict"]');
+    if (b && b.getAttribute('aria-selected') !== 'true') b.click();
+  }
+  document.querySelector('nav button[data-tab="dict"]').addEventListener('click', function () {
+    if (!loaded) { loaded = true; setupView(); load(false); }
+    else load(false, { key: openKey });
+    setTimeout(function () { $('d-q').focus(); }, 0);
+  });
+  window.ss13trDict = {
+    fixGameText: function (ru) {
+      showPage(); if (view !== 'ru-en') switchView('ru-en');
+      S.match = 'exact'; $('d-match').value = 'exact'; S.filter = 'all'; $('d-filter').value = 'all';
+      $('d-q').value = ru; S.q = ru; $('d-clear').hidden = false;
+      load(false).then(function () {
+        if (items.length) openEditor(0);
+        else openNew(ru);
+      });
+    },
+    fixTyped: function (en) {
+      showPage(); if (view !== 'en-ru') switchView('en-ru');
+      S.match = 'exact'; $('d-match').value = 'exact'; S.filter = 'all'; $('d-filter').value = 'all';
+      $('d-q').value = en; S.q = en; $('d-clear').hidden = false;
+      load(false).then(function () { if (items.length) openEditor(0); else openNew(en); });
+    }
+  };
+})();
+</script>
+</body>
+</html>

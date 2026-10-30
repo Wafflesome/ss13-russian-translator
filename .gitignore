@@ -1,0 +1,12 @@
+# Made while the translator runs - never commit these
+logs/
+cache/
+backups/
+runtime/
+config.json
+data/my_names.json
+data/wiki_lexicon.json
+*.lnk
+# your own dictionary fixes (the files in the repository are empty templates)
+# data/overrides.json
+# data/overrides_outgoing.json

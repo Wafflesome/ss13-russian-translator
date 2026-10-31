@@ -8,7 +8,7 @@ Made for **SS1984 / SS220 (Paradise)**. It works on any BYOND 516 server, but th
 
 > [!WARNING]
 > ## This is vibecoded slop
-> Pretty much every line of this was written by an AI over a lot of chat sessions, for one person who wanted to play on Russian servers.
+> Pretty much every line of this was written by an AI over a lot of chat sessions, however it works well enough that I can play without a problem on russian servers so its fine.
 >
 > - It **works on my machine**. It may not work on yours.
 
